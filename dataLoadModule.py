@@ -110,7 +110,7 @@ def getFullEmailData():
     
     #Retrieve all email data.
     dataDict = { key: [] for key in columnNames }  
-    cursor.execute('''SELECT * FROM Emails;''')
+    cursor.execute('''SELECT * FROM Emails WHERE (ExtractedBodyText != '');''')
     for row in cursor:
         for key in range(0, len(columnNames)):
             #Extract each column value and add it to the dictionary.
