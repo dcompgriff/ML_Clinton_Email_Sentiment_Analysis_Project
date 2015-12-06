@@ -57,8 +57,9 @@ def nltkSentimentAnalysisFirstClassifier():
     #Aggregate train and test data sets.
     train = train_pos + train_neg
     test = test_pos + test_neg
-    
-    #Create a sentiment analyzer to analyze the text documents. This analyzer 
+
+
+    #Create a sentiment analyzer to analyze the text documents. This analyzer
     #provides an abstraction for managing a classifier, and feature extractor.
     #It also provides convinence data metrics on classifier performance. 
     sentim_analyzer = SentimentAnalyzer()
@@ -79,7 +80,7 @@ def nltkSentimentAnalysisFirstClassifier():
     print("Begining the classifier training...")
     
     #NAIVE BAYES CLASSIFIER.
-    #trainer = NaiveBayesClassifier.train
+    trainer = NaiveBayesClassifier.train
     #classifier = sentim_analyzer.train(trainer, train_set)
     
     #RBF SUPPORT VECTOR MACHINE CLASSIFIER.
@@ -92,6 +93,8 @@ def nltkSentimentAnalysisFirstClassifier():
     #Test the classifier on the test set.
     for key,value in sorted(sentim_analyzer.evaluate(test_set).items()):
         print('{0}: {1}'.format(key, value))
+
+nltkSentimentAnalysisFirstClassifier()
 
 '''
 Pickle the classifier model into a re-useable file.
