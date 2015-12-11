@@ -1,0 +1,8 @@
+Minutes to train: 9.35120473703
+Accuracy: 0.645
+F-measure [neg]: 0.657666345227
+F-measure [pos]: 0.631360332295
+Precision [neg]: 0.635009310987
+Precision [pos]: 0.656587473002
+Recall [neg]: 0.682
+Recall [pos]: 0.608
