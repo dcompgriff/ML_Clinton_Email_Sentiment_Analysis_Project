@@ -54,8 +54,8 @@ very important to analyzing text. Finally, each email is stored as a list of tok
 The resulting pandas DataFrame is returned with each row representing an email, and each entry in the column 
 representing a list of tokenized sentences from the email body. 
 
-NOTE!!!!!: This data hasn't been re-formatted in terms of the features used for sentiment analysis! This may 
-cause errors since the data isn't formatted in the same way. (Aka, if using unigram features, the document is represented 
+NOTE!!!!!: This data hasn't been re-formatted in terms of the features used for sentiment analysis! This may
+cause errors since the data isn't formatted in the same way. (Aka, if using unigram features, the document is represented
 as a bag of words with a field representing True or False.)
 '''
 def getNonEmptyEmailBodysTokenized():
@@ -91,7 +91,7 @@ def getNonEmptyEmailBodysTokenized():
 
     #Return pandas data frame with all data.
     data = pd.DataFrame(dataDict)
-    db.close();    
+    db.close()
     return data    
     
     
