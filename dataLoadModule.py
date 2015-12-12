@@ -16,7 +16,7 @@ from nltk import word_tokenize
 from nltk.sentiment import SentimentAnalyzer
 from nltk.sentiment.util import *
 
-
+#Global variable used to hold the data extracted from the database.
 data = None
 
 '''
@@ -84,6 +84,8 @@ def getNonEmptyEmailBodysTokenized():
             tokenizedWords = word_tokenize(sentence)
             #Add negation tag to each word that has been negated, from the sentiment utils package.
             tokenizedWordsWithNeg = mark_negation(tokenizedWords)
+            #Re-encode each word
+            tokenizedWordsWithNeg = [string.encode('ascii', 'ignore').decode('ascii') for string in tokenizedWordsWithNeg]            
             #Add newly tokenized word to list.
             tokenizedToWordsList.append(tokenizedWordsWithNeg)
         #Add list of tokenized sentences to dataDict.    
@@ -122,7 +124,7 @@ def getFullEmailData():
     return data
     
 if __name__ == "__main__":
-    getNonEmptyEmailBodys()
+    data = getNonEmptyEmailBodysTokenized()
         
     
 
