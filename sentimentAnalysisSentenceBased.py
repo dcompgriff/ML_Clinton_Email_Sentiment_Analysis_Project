@@ -4,8 +4,8 @@ Created on Mon Nov 30 16:04:00 2015
 
 
 Todo:
-1) Run all classifiers, save, and save metrics.
-2) Make a table with all metrics, using scikit learn libraries.
+DONE: 1) Run all classifiers, save, and save metrics.
+DONE: 2) Make a table with all metrics, using scikit learn libraries.
 3) Make set of all training documents classified by each method.
 4) Make a ROC curve with all classifiers.
 5) Do correlation analysis for each classifier's list of documents classified, sort, 
@@ -20,10 +20,12 @@ import nltk as nltk
 import time
 import gc
 import pickle
+from multiprocessing import Process
 import dataLoadModule as dl
 from sklearn.cross_validation import train_test_split
 from sklearn.externals import joblib
-
+import pandas as pd
+import numpy as np
 
 #Import the base scikit learn wrapper class from nltk.
 from nltk.classify.scikitlearn import SklearnClassifier
@@ -58,6 +60,8 @@ from nltk import word_tokenize
 #GLOBALS
 data = None
 classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
+classifierResultsDict = {key: [] for key in classifierNamesList}
+processes = []
 
 def main():
     global data
@@ -214,6 +218,179 @@ def trainAllClassifiers():
     saveMetricsToFile("ab", sentim_analyzer, test_set, timeDiff/60.0)
     print "Total time to train: " + str(timeDiff/60.0) + " minutes."
     
+def runAllEmailClassifiersForEmails():
+    global processes
+    #Run all classifiers in parallel.
+#    with ThreadPoolExecutor(max_workers=4) as e:
+#        e.submit(shutil.copy, 'src1.txt', 'dest1.txt')
+#        e.submit(shutil.copy, 'src2.txt', 'dest2.txt')
+#        e.submit(shutil.copy, 'src3.txt', 'dest3.txt')
+#        e.submit(shutil.copy, 'src4.txt', 'dest4.txt')    
+
+    
+    
+    
+    #Create a sentiment analyzer to analyze the text documents. This analyzer
+    #provides an abstraction for managing a classifier, and feature extractor.
+    #It also provides convinence data metrics on classifier performance. 
+#    sentim_analyzer = SentimentAnalyzer()
+#    #Load the saved feature list.
+#    f = open("./bow_features.pkl", "r")   
+#    unigram_features = pickle.load(f)
+#    f.close()
+#    #Create a feature extractor based on the unigram word features created.
+#    #The unigram feature extractor is found in the sentiment utils package.
+#    sentim_analyzer.add_feat_extractor(extract_unigram_feats, unigrams=unigram_features)
+#    
+#    #Retrieve the list of emails from the data load module.
+    print("Readding emails from database...")
+#    #Read from database. This takes a goood amount of time bc formatting and retrieving from the database.
+    emailsInSentenceForm = dl.getNonEmptyEmailBodysTokenized()
+#    #Read from saved excel file.
+#    #emailsInSentenceForm = pd.read_excel("emails_to_classify.xlsx") 
+    
+    #Load the saved feature list.
+    f = open("./bow_features.pkl", "r")   
+    unigram_features = pickle.load(f)
+    f.close()
+#    
+    print("Emails read!.")    
+    
+    processes = []
+    for classifierKey in classifierNamesList:
+        t = Process(target=runClassifier, args=(classifierKey, emailsInSentenceForm, unigram_features, ))
+        processes.append(t)
+        t.start()
+    
+    print("Threads created.")    
+#    for thread in processes:
+#        thread.start() 
+#        
+#    #Wait for all threads to finish.
+    print("Threads started. Waiting for all to finish.")
+    for thread in processes:
+        thread.join()
+#        
+    print("All threads finished!")
+    
+    #For each classifier, parse the email data, and classify it.
+#    for classifierKey in classifierNamesList:
+#        print("Current classifier: " + classifierKey)
+#        #Load the classifier.
+#        classifier = loadModel(classifierKey)
+#        
+#        #Set up sentiment counts for the emails.
+#        posVote = 0
+#        negVote = 0
+#        for emailIndex in range(0, emailsInSentenceForm.shape[0]):
+#            #if(emailIndex % 100 == 0):
+#            print(classifierKey + " On email: " + str(emailIndex))
+#            #Get the list of sentences for the email.
+#            email = emailsInSentenceForm.iloc[emailIndex,:][0]
+#            featurizedSentenceList = sentim_analyzer.apply_features(email)
+#            for sent in featurizedSentenceList:
+#                label = classifier.classify(sent[0])
+#                if label == "pos":
+#                    posVote += 1
+#                else:
+#                    negVote += 1
+#            #Take the maximum vote for the class label. Use 1 and -1 to faciliitate the later correlation calculations.
+#            if posVote >= negVote:
+#                classifierResultsDict[classifierKey].append(1)
+#            else:
+#                classifierResultsDict[classifierKey].append(-1)
+#            #Reset pos and neg votes to 0.
+#            posVote = 0
+#            negVote = 0
+#            
+#        #Convert the classifier results to a pandas data frame.
+#        finalData = pd.DataFrame(classifierResultsDict)
+#        finalData.to_excel("email_classifier_results.xlsx")
+#        return finalData
+    
+    
+    
+def runClassifier(classifierKey, emailsInSentenceForm, unigram_features):
+    #Create a sentiment analyzer to analyze the text documents. This analyzer
+    #provides an abstraction for managing a classifier, and feature extractor.
+    #It also provides convinence data metrics on classifier performance. 
+    sentim_analyzer = SentimentAnalyzer()
+    #Create a feature extractor based on the unigram word features created.
+    #The unigram feature extractor is found in the sentiment utils package.
+    sentim_analyzer.add_feat_extractor(extract_unigram_feats, unigrams=unigram_features)    
+    
+    
+    print("Current classifier: " + classifierKey)
+    #Load the classifier.
+    classifier = loadModel(classifierKey)
+    
+    #Set up sentiment counts for the emails.
+    posVote = 0
+    negVote = 0
+    classifierResultsDict = []
+    #int(emailsInSentenceForm.shape[0]/3.0)
+    for emailIndex in range(0, int(emailsInSentenceForm.shape[0])):
+        if(emailIndex % 100 == 0):
+            print(classifierKey + " On email: " + str(emailIndex))
+            #Write the results to a file.
+            f = open("./"+classifierKey+"Results.pkl", "w")   
+            pickle.dump(classifierResultsDict, f)
+            f.close()
+        #Get the list of sentences for the email.
+        email = emailsInSentenceForm.iloc[emailIndex,:][0]
+        featurizedSentenceList = sentim_analyzer.apply_features(email)
+        for sent in featurizedSentenceList:
+            label = classifier.classify(sent[0])
+            if label == "pos":
+                posVote += 1
+            else:
+                negVote += 1
+        #Take the maximum vote for the class label. Use 1 and -1 to faciliitate the later correlation calculations.
+        if posVote >= negVote:
+            classifierResultsDict.append(1)
+        else:
+            classifierResultsDict.append(-1)
+        #Reset pos and neg votes to 0.
+        posVote = 0
+        negVote = 0
+        
+        
+    #Write the results to a file.
+    f = open("./"+classifierKey+"Results.pkl", "w")   
+    pickle.dump(classifierResultsDict, f)
+    f.close()
+        
+
+def correlateClassifiers(classifierResults):
+    #Example Dictionary.
+#    exList = ["svm", "dt", "nb"]
+#    cDict = {"svm": [1, 1, -1, 1, 1], "dt": [-1, 1, 1, 1, 1], "nb": [-1, 1, 1, 1, 1]}  
+    #List of tupples (firstClassifierIndex, secondClassifierIndex, correlationValue)
+#    correlationResults = []
+#    classifierResults = pd.DataFrame(cDict)
+    
+    #Find all correlation values.
+    for i in range(0, len(classifierNamesList) - 1):
+        for j in range(i + 1, len(classifierNamesList)):
+            firstClassifier = classifierNamesList[i]
+            secondClassifier = classifierNamesList[j]
+            correlation = np.corrcoef(classifierResults[firstClassifier], classifierResults[secondClassifier])
+            correlationResults.append((i, j, correlation[0][1]))
+        
+    #Sort by highest correlation.
+    sortedByHighestCorrelation = sorted(correlationResults, key=lambda item: item[2], reverse=True)
+    
+    return sortedByHighestCorrelation
+    
+def buildClassifierResultsTable():
+    for classifierKey in classifierNamesList:
+        f = open("./"+classifierKey+"Results.pkl", "r")   
+        resultsList = pickle.load(f)
+        f.close()        
+        classifierResultsDict[classifierKey] = resultsList   
+        
+        return pd.DataFrame(classifierResultsDict)
+    
 
 '''
 Pickle the classifier model into a re-useable file.
@@ -256,7 +433,11 @@ def saveMetricsToFile(fileName, sentim_analyzer, test_set, timeInMin):
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    runAllEmailClassifiersForEmails()
+    #correlateClassifiers()
+    #data = buildClassifierResultsTable()
+    
 
 
 
