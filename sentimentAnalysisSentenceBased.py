@@ -15,18 +15,27 @@ and graph correlations from max to min.
 @author: DAN
 """
 
-from __future__ import division  # Needed in Python 2 for tokenizing.
-import nltk as nltk
+# Needed in Python 2 for tokenizing.
+from __future__ import division  
+#Used to time training.
 import time
+#Used to clean up memory to speed up training.
 import gc
+#Used to save the email classification labels.
 import pickle
+#Used to run the email classification task in parallel.
 from multiprocessing import Process
+#Used to load email data from the data base.
 import dataLoadModule as dl
+#Used to split and randomly select data samples for train and test.
 from sklearn.cross_validation import train_test_split
+#Used as an efficient method for saving and loading scikit learn models.
 from sklearn.externals import joblib
+#Used to create pandas DataFrames.
 import pandas as pd
+#Used to perform correlation calculations.
 import numpy as np
-import copy as copy
+#Used to plot results of metrics.
 import matplotlib.pyplot as plt
 
 #ROC and auc curve metrics.
@@ -66,16 +75,14 @@ from nltk import word_tokenize
 #GLOBALS
 data = None
 correlationList = []
+#List of classifiers, used throughout this module as a method of accessing classifier files, 
+#as well as accessing pandas data frame columns.
 classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
 classifierResultsDict = {key: [] for key in classifierNamesList}
 processes = []
 
 def main():
     global data
-    
-    #Get all of the emails.
-    #data = dl.getFullEmailData()
-    #trainAllClassifiers()
     graphROCCurve()
     
 '''
@@ -466,7 +473,9 @@ def graphROCCurve():
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
+    plt.legend(loc="lower right")
     plt.plot()
+    plt.show()
 
 '''
 This method retreives the email classification results from each classifier's pickled labels file, and
@@ -525,12 +534,6 @@ def saveMetricsToFile(fileName, sentim_analyzer, test_set, timeInMin):
 
 if __name__ == "__main__":
     main()
-    #runAllEmailClassifiersForEmails()
-    #data = buildClassifierResultsTable()
-    #correlationList = correlateClassifiers(data)
-    #graphCorrelation()
-    
-
 
 
 
