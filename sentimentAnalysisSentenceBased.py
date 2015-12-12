@@ -384,12 +384,12 @@ def correlateClassifiers(classifierResults):
     
 def buildClassifierResultsTable():
     for classifierKey in classifierNamesList:
-        f = open("./"+classifierKey+"Results.pkl", "r")   
+        f = open("./classifier_results/"+classifierKey+"Results.pkl", "r")   
         resultsList = pickle.load(f)
         f.close()        
         classifierResultsDict[classifierKey] = resultsList   
         
-        return pd.DataFrame(classifierResultsDict)
+    return pd.DataFrame(classifierResultsDict)
     
 
 '''
@@ -434,9 +434,9 @@ def saveMetricsToFile(fileName, sentim_analyzer, test_set, timeInMin):
 
 if __name__ == "__main__":
     #main()
-    runAllEmailClassifiersForEmails()
+    #runAllEmailClassifiersForEmails()
+    data = buildClassifierResultsTable()
     #correlateClassifiers()
-    #data = buildClassifierResultsTable()
     
 
 
