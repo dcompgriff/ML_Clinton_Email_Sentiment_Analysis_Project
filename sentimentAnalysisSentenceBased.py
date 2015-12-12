@@ -26,7 +26,11 @@ from sklearn.cross_validation import train_test_split
 from sklearn.externals import joblib
 import pandas as pd
 import numpy as np
+import copy as copy
 import matplotlib.pyplot as plt
+
+#ROC and auc curve metrics.
+from sklearn.metrics import roc_curve, auc
 
 #Import the base scikit learn wrapper class from nltk.
 from nltk.classify.scikitlearn import SklearnClassifier
@@ -63,7 +67,7 @@ from nltk import word_tokenize
 #GLOBALS
 data = None
 correlationList = []
-classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd", "lsvm"]
+classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
 classifierResultsDict = {key: [] for key in classifierNamesList}
 processes = []
 
@@ -74,7 +78,17 @@ def main():
     #data = dl.getFullEmailData()
     #trainAllClassifiers()
     
- 
+'''
+This method trains all of the classifiers sequentially. It first selects 4000 positive and 4000 negative examples. 
+Then, it creates a bag of words set of features, with negations marked. This feature set is then applied to 
+both the training set, and the test set. 
+
+For each classifier, 4 tasks are performed:
+1) The time to train is recorded.
+2) The model is trained.
+3) The model is saved using the "saveModel()" function.
+4) The model's metrics are determined, and then stored using the "saveMetricsToFile()" method.
+'''
 def trainAllClassifiers():
     #Get all subjective and objective sentences.
     #Note: The "encode/decode" statement is used to parse the unicode representation of the text to an 
@@ -103,16 +117,14 @@ def trainAllClassifiers():
     print("Creating feature set...")
     all_words_with_neg_tags = sentim_analyzer.all_words([mark_negation(doc) for doc in train])
     #Create the unigram features, only taking features that occur more than 4 time.
-    #unigram_features = sentim_analyzer.unigram_word_feats(all_words_with_neg_tags, min_freq=2)
+    unigram_features = sentim_analyzer.unigram_word_feats(all_words_with_neg_tags, min_freq=2)
     
     #Save the unigram feature list to a file so it can be used later.
     #These features need to be applied to the email set.
-    #f = open("./bow_features.pkl", "w")   
-    #pickle.dump(unigram_features, f)
-    #f.close()
-    f = open("./bow_features.pkl", "r")   
-    unigram_features = pickle.load(f)
+    f = open("./bow_features.pkl", "w")   
+    pickle.dump(unigram_features, f)
     f.close()
+
     
     #Create a feature extractor based on the unigram word features created.
     #The unigram feature extractor is found in the sentiment utils package.
@@ -142,193 +154,139 @@ def trainAllClassifiers():
     saveMetricsToFile("lsvm", sentim_analyzer, test_set, timeDiff/60.0)
     print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
     
-#    #Naive Bayes
-#    startTime = time.time()
-#    print("Naive Bayes.")   
-#    trainer = NaiveBayesClassifier.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "nb")
-#    saveMetricsToFile("nb", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
-#    
-#    #Stochastic Gradient Descent. (Performed first since it takes the least amount of time.)
-#    startTime = time.time()
-#    print("Stochastic Gradient Descent.")   
-#    clf = SklearnClassifier(SGDClassifier())
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "sgd")
-#    saveMetricsToFile("sgd", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
-#    
-#    #SVM
-#    startTime = time.time()
-#    print("RBF Support Vector Machine.")   
-#    clf = SklearnClassifier(svm.SVC(kernel='rbf'))
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "svm")
-#    saveMetricsToFile("svm", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-#    
-#    #Multinomial Naive Bayes.
-#    startTime = time.time()
-#    print("Multinomial Naive Bayes.")   
-#    clf = SklearnClassifier(MultinomialNB())
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "mnb")
-#    saveMetricsToFile("mnb", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-#    
-#    #Logistic Regression.
-#    startTime = time.time()
-#    print("Logistic Regression.")   
-#    clf = SklearnClassifier(LogisticRegression())
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "lr")
-#    saveMetricsToFile("lr", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-#    
-#    #Descision tree
-#    startTime = time.time()
-#    print("Decision Tree.")   
-#    clf = SklearnClassifier(DecisionTreeClassifier())
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "dt")
-#    saveMetricsToFile("dt", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-#    
-#    #Random Forrest.
-#    startTime = time.time()
-#    print("Random Forrest.")   
-#    clf = SklearnClassifier(RandomForestClassifier())
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "rf")
-#    saveMetricsToFile("rf", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-#    
-#    #Adaboost
-#    startTime = time.time()
-#    print("Ada Boost")   
-#    clf = SklearnClassifier(AdaBoostClassifier())
-#    trainer = clf.train
-#    classifier = sentim_analyzer.train(trainer, train_set)
-#    endTime = time.time()
-#    timeDiff = endTime - startTime
-#    saveModel(classifier, "ab")
-#    saveMetricsToFile("ab", sentim_analyzer, test_set, timeDiff/60.0)
-#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    #Naive Bayes
+    startTime = time.time()
+    print("Naive Bayes.")   
+    trainer = NaiveBayesClassifier.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "nb")
+    saveMetricsToFile("nb", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
     
+    #Stochastic Gradient Descent. (Performed first since it takes the least amount of time.)
+    startTime = time.time()
+    print("Stochastic Gradient Descent.")   
+    clf = SklearnClassifier(SGDClassifier())
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "sgd")
+    saveMetricsToFile("sgd", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
+    
+    #SVM
+    startTime = time.time()
+    print("RBF Support Vector Machine.")   
+    clf = SklearnClassifier(svm.SVC(kernel='rbf'))
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "svm")
+    saveMetricsToFile("svm", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    
+    #Multinomial Naive Bayes.
+    startTime = time.time()
+    print("Multinomial Naive Bayes.")   
+    clf = SklearnClassifier(MultinomialNB())
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "mnb")
+    saveMetricsToFile("mnb", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    
+    #Logistic Regression.
+    startTime = time.time()
+    print("Logistic Regression.")   
+    clf = SklearnClassifier(LogisticRegression())
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "lr")
+    saveMetricsToFile("lr", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    
+    #Descision tree
+    startTime = time.time()
+    print("Decision Tree.")   
+    clf = SklearnClassifier(DecisionTreeClassifier())
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "dt")
+    saveMetricsToFile("dt", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    
+    #Random Forrest.
+    startTime = time.time()
+    print("Random Forrest.")   
+    clf = SklearnClassifier(RandomForestClassifier())
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "rf")
+    saveMetricsToFile("rf", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    
+    #Adaboost
+    startTime = time.time()
+    print("Ada Boost")   
+    clf = SklearnClassifier(AdaBoostClassifier())
+    trainer = clf.train
+    classifier = sentim_analyzer.train(trainer, train_set)
+    endTime = time.time()
+    timeDiff = endTime - startTime
+    saveModel(classifier, "ab")
+    saveMetricsToFile("ab", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    
+'''
+This method is used to classify all of the emails using all classifiers. It uses the multiprocessing 
+module to utilize multiple cores to run the training.
+'''    
 def runAllEmailClassifiersForEmails():
     global processes
-    #Run all classifiers in parallel.
-#    with ThreadPoolExecutor(max_workers=4) as e:
-#        e.submit(shutil.copy, 'src1.txt', 'dest1.txt')
-#        e.submit(shutil.copy, 'src2.txt', 'dest2.txt')
-#        e.submit(shutil.copy, 'src3.txt', 'dest3.txt')
-#        e.submit(shutil.copy, 'src4.txt', 'dest4.txt')    
-
-    
-    
-    
-    #Create a sentiment analyzer to analyze the text documents. This analyzer
-    #provides an abstraction for managing a classifier, and feature extractor.
-    #It also provides convinence data metrics on classifier performance. 
-#    sentim_analyzer = SentimentAnalyzer()
-#    #Load the saved feature list.
-#    f = open("./bow_features.pkl", "r")   
-#    unigram_features = pickle.load(f)
-#    f.close()
-#    #Create a feature extractor based on the unigram word features created.
-#    #The unigram feature extractor is found in the sentiment utils package.
-#    sentim_analyzer.add_feat_extractor(extract_unigram_feats, unigrams=unigram_features)
-#    
-#    #Retrieve the list of emails from the data load module.
+  
+    #Retrieve the list of emails from the data load module.
     print("Readding emails from database...")
-#    #Read from database. This takes a goood amount of time bc formatting and retrieving from the database.
+    #Read from database. This takes a goood amount of time bc formatting and retrieving from the database.
     emailsInSentenceForm = dl.getNonEmptyEmailBodysTokenized()
-#    #Read from saved excel file.
-#    #emailsInSentenceForm = pd.read_excel("emails_to_classify.xlsx") 
+    #Read from saved excel file.
+    #emailsInSentenceForm = pd.read_excel("emails_to_classify.xlsx") 
     
     #Load the saved feature list.
     f = open("./bow_features.pkl", "r")   
     unigram_features = pickle.load(f)
     f.close()
-#    
-    print("Emails read!.")    
-    
+   
+    print("Emails read!.")      
     processes = []
     for classifierKey in classifierNamesList:
         t = Process(target=runClassifier, args=(classifierKey, emailsInSentenceForm, unigram_features, ))
         processes.append(t)
         t.start()
-    
-    print("Threads created.")    
-#    for thread in processes:
-#        thread.start() 
-#        
-#    #Wait for all threads to finish.
+
     print("Threads started. Waiting for all to finish.")
     for thread in processes:
         thread.join()
-#        
+        
     print("All threads finished!")
-    
-    #For each classifier, parse the email data, and classify it.
-#    for classifierKey in classifierNamesList:
-#        print("Current classifier: " + classifierKey)
-#        #Load the classifier.
-#        classifier = loadModel(classifierKey)
-#        
-#        #Set up sentiment counts for the emails.
-#        posVote = 0
-#        negVote = 0
-#        for emailIndex in range(0, emailsInSentenceForm.shape[0]):
-#            #if(emailIndex % 100 == 0):
-#            print(classifierKey + " On email: " + str(emailIndex))
-#            #Get the list of sentences for the email.
-#            email = emailsInSentenceForm.iloc[emailIndex,:][0]
-#            featurizedSentenceList = sentim_analyzer.apply_features(email)
-#            for sent in featurizedSentenceList:
-#                label = classifier.classify(sent[0])
-#                if label == "pos":
-#                    posVote += 1
-#                else:
-#                    negVote += 1
-#            #Take the maximum vote for the class label. Use 1 and -1 to faciliitate the later correlation calculations.
-#            if posVote >= negVote:
-#                classifierResultsDict[classifierKey].append(1)
-#            else:
-#                classifierResultsDict[classifierKey].append(-1)
-#            #Reset pos and neg votes to 0.
-#            posVote = 0
-#            negVote = 0
-#            
-#        #Convert the classifier results to a pandas data frame.
-#        finalData = pd.DataFrame(classifierResultsDict)
-#        finalData.to_excel("email_classifier_results.xlsx")
-#        return finalData
-    
-    
-    
+     
+'''
+This is a worker method that is used to test each classifier. It is used with the "runAllEmailClassifiersForEmails()"
+method. This method runs through all emails, and classifies each email. The resulting array of labels is saved in 
+a pickled file. Every 100 emails, the pickled file is re-saved with all of the new labels. This allows for progress 
+monitoring. 
+'''
 def runClassifier(classifierKey, emailsInSentenceForm, unigram_features):
     #Create a sentiment analyzer to analyze the text documents. This analyzer
     #provides an abstraction for managing a classifier, and feature extractor.
@@ -337,7 +295,6 @@ def runClassifier(classifierKey, emailsInSentenceForm, unigram_features):
     #Create a feature extractor based on the unigram word features created.
     #The unigram feature extractor is found in the sentiment utils package.
     sentim_analyzer.add_feat_extractor(extract_unigram_feats, unigrams=unigram_features)    
-    
     
     print("Current classifier: " + classifierKey)
     #Load the classifier.
@@ -373,20 +330,17 @@ def runClassifier(classifierKey, emailsInSentenceForm, unigram_features):
         posVote = 0
         negVote = 0
         
-        
     #Write the results to a file.
     f = open("./"+classifierKey+"Results.pkl", "w")   
     pickle.dump(classifierResultsDict, f)
     f.close()
         
-
+'''
+This method compares the labels of each pair of classifiers. It calculates the correlation for each classifier, 
+sorts by magnitude in descending order. It is mainly used by the "graphCorrelation()" method.
+'''
 def correlateClassifiers(classifierResults):
-    #Example Dictionary.
-#    exList = ["svm", "dt", "nb"]
-#    cDict = {"svm": [1, 1, -1, 1, 1], "dt": [-1, 1, 1, 1, 1], "nb": [-1, 1, 1, 1, 1]}  
-    #List of tupples (firstClassifierIndex, secondClassifierIndex, correlationValue)
     correlationResults = []
-#    classifierResults = pd.DataFrame(cDict)
     
     #Find all correlation values.
     for i in range(0, len(classifierNamesList) - 1):
@@ -401,7 +355,9 @@ def correlateClassifiers(classifierResults):
     
     return sortedByHighestCorrelation
     
-    
+'''
+This method plots a comparison of all classifier correlations. 
+'''
 def graphCorrelation():
     global data
     global correlationList    
@@ -412,7 +368,6 @@ def graphCorrelation():
     correlationList = correlateClassifiers(data)
     correlationOnlyList = [item[2] for item in correlationList]    
     
-    
     X = np.arange(0, len(correlationOnlyList))
     plt.bar(X, correlationOnlyList)
     
@@ -421,10 +376,87 @@ def graphCorrelation():
     
     plt.show()
     
+'''
+Used to test the classifiers on 1000 new test examples, and to return a pandas DataFrame with all classifier results,
+and a DataFrame with the labels for the test set. This method is used mainly to build the data set for the ROC 
+curve. When built, the results of this method are saved in excel files for quick retrieval.
+'''
+def classifyOn1000Examples():
+    print("Splitting positive and negative documents...")    
+    positive_docs = [ ([string.encode('ascii', 'ignore').decode('ascii') for string in sent], 'pos') for sent in movie_reviews.sents(categories='pos')]
+    negative_docs = [ ([string.encode('ascii', 'ignore').decode('ascii') for string in sent ], 'neg') for sent in movie_reviews.sents(categories='neg')]     
+    #Randomly split data sets into train and test sets.
+    train_pos, test_pos = train_test_split(positive_docs, test_size=500, train_size=4000)
+    train_neg, test_neg = train_test_split(negative_docs, test_size=500, train_size=4000)
+        
+    #Aggregate train and test data sets.
+    test = test_pos + test_neg
+
+    #Create a sentiment analyzer to analyze the text documents. This analyzer
+    #provides an abstraction for managing a classifier, and feature extractor.
+    #It also provides convinence data metrics on classifier performance. 
+    sentim_analyzer = SentimentAnalyzer()
+    #Mark negations in the tokenized training text, and count all negative words.
+    #all_words() returns all tokens from the document, which is used to create a set 
+    #of features with a feature extractor.
+    print("Creating feature set...")
+    f = open("./bow_features.pkl", "r")   
+    unigram_features = pickle.load(f)
+    f.close()
+    
+    #Create a feature extractor based on the unigram word features created.
+    #The unigram feature extractor is found in the sentiment utils package.
+    sentim_analyzer.add_feat_extractor(extract_unigram_feats, unigrams=unigram_features)
+    #Create feature-value representations of the data.
+    test_set = sentim_analyzer.apply_features(test)
+    
+    #Make a dict to hold predicted labels.
+    testDict = {"test_labels": []}
+    for sent in test_set:
+        testDict["test_labels"].append(sent[1])
+    
+    print("Beginning classification...")
+    classifierResultsDict = {key: [] for key in classifierNamesList}
+    for classifierKey in classifierNamesList:
+        print("Starting classifier: " + classifierKey)
+        classifier = loadModel(classifierKey)
+        for sent in test_set:
+            label = classifier.classify(sent[0])
+            classifierResultsDict[classifierKey].append(label)
+            
+    return pd.DataFrame(classifierResultsDict), pd.DataFrame(testDict)
+    
 def graphROCCurve():
-    pass()
+    #Loab initial data.
+    rocDataClassified = pd.read_excel("./classifier_results/roc_data.xlsx")  
+    test_labels = pd.read_excel("./classifier_results/test_labels.xlsx")
     
+    #Calculate all metrics from the roc curve function.
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for key in classifierNamesList:
+        fpr[key], tpr[key], _ = roc_curve(test_labels[:], rocDataClassified[key])
+        roc_auc[key] = auc(fpr[key], tpr[key])    
     
+    #Plot the ROC curve for each classifier, along with the AUC measure. 
+    plt.figure()
+    for key in classifierNamesList:
+        plt.plot(fpr[key], tpr[key], label='ROC curve of classifier {0} (area = {1:0.2f})'''.format(key, roc_auc[key]))
+    
+    #Set up the plot axes, and show the final figure.
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.plot()
+
+'''
+This method retreives the email classification results from each classifier's pickled labels file, and
+creates a DataFrame holding all of the labels. This method allows for access to the email labels without 
+having to re-run the classifiers. 
+'''
 def buildClassifierResultsTable():
     for classifierKey in classifierNamesList:
         f = open("./classifier_results/"+classifierKey+"Results.pkl", "r")   
@@ -476,11 +508,11 @@ def saveMetricsToFile(fileName, sentim_analyzer, test_set, timeInMin):
 
 
 if __name__ == "__main__":
-    #main()
+    main()
     #runAllEmailClassifiersForEmails()
     #data = buildClassifierResultsTable()
     #correlationList = correlateClassifiers(data)
-    graphCorrelation()
+    #graphCorrelation()
     
 
 
