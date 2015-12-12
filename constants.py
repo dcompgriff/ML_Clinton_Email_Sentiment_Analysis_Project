@@ -38,3 +38,4 @@ hunpos_english_model = "/Users/jeffnainap/Applications/bin/english.model"
 Constants for General Statistics
 """
 country_list = "data/countries.txt"
+political_figures = "data/political_figures.txt"
