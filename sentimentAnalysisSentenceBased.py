@@ -63,7 +63,7 @@ from nltk import word_tokenize
 #GLOBALS
 data = None
 correlationList = []
-classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
+classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd", "lsvm"]
 classifierResultsDict = {key: [] for key in classifierNamesList}
 processes = []
 
@@ -420,6 +420,9 @@ def graphCorrelation():
         plt.text(x+0.4, y+0.05, "(" + correlationList[x][0] + ", \n" + correlationList[x][1] + ")", ha='center', va= 'bottom')
     
     plt.show()
+    
+def graphROCCurve():
+    pass()
     
     
 def buildClassifierResultsTable():
