@@ -1,0 +1,43 @@
+ 
+Splitting positive and negative documents...
+Creating feature set...
+Beginning the classifier training...
+Naive Bayes.
+Training classifier
+Evaluating NaiveBayesClassifier results...
+Total time to train: 3.91859791676 minutes.
+
+Stochastic Gradient Descent.
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 9.16335639954 minutes.
+
+RBF Support Vector Machine.
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 15.6483136177 minutes.
+
+Multinomial Naive Bayes.
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 13.9509110808 minutes.
+
+Logistic Regression.
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 11.0654128989 minutes.
+
+Decision Tree.
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 14.6494458993 minutes.
+
+Random Forrest.
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 11.5365919153 minutes.
+
+Ada Boost
+Training classifier
+Evaluating SklearnClassifier results...
+Total time to train: 13.7067252 minutes.

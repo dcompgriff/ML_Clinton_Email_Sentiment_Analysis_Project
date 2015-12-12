@@ -18,6 +18,8 @@ and graph correlations from max to min.
 from __future__ import division  # Needed in Python 2 for tokenizing.
 import nltk as nltk
 import time
+import gc
+import pickle
 import dataLoadModule as dl
 from sklearn.cross_validation import train_test_split
 from sklearn.externals import joblib
@@ -55,6 +57,7 @@ from nltk import word_tokenize
 
 #GLOBALS
 data = None
+classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
 
 def main():
     global data
@@ -93,12 +96,25 @@ def trainAllClassifiers():
     all_words_with_neg_tags = sentim_analyzer.all_words([mark_negation(doc) for doc in train])
     #Create the unigram features, only taking features that occur more than 4 time.
     unigram_features = sentim_analyzer.unigram_word_feats(all_words_with_neg_tags, min_freq=2)
+    
+    #Save the unigram feature list to a file so it can be used later.
+    #These features need to be applied to the email set.
+    f = open("./bow_features.pkl", "w")   
+    pickle.dump(unigram_features, f)
+    f.close()
+    
     #Create a feature extractor based on the unigram word features created.
     #The unigram feature extractor is found in the sentiment utils package.
     sentim_analyzer.add_feat_extractor(extract_unigram_feats, unigrams=unigram_features)
     #Create feature-value representations of the data.
     train_set = sentim_analyzer.apply_features(train)
     test_set = sentim_analyzer.apply_features(test)
+    
+    #Collect some memory.
+    positive_docs = None
+    negative_docs = None
+    gc.collect()    
+    
     #Note, training may take a long time.
     #Create a trainer and train the sentiment analyzer on the training set.  
     print("Beginning the classifier training...")
@@ -117,7 +133,7 @@ def trainAllClassifiers():
     #Stochastic Gradient Descent. (Performed first since it takes the least amount of time.)
     startTime = time.time()
     print("Stochastic Gradient Descent.")   
-    clf = SklearnClassifier(SGDClassifier)
+    clf = SklearnClassifier(SGDClassifier())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
@@ -135,13 +151,13 @@ def trainAllClassifiers():
     endTime = time.time()
     timeDiff = endTime - startTime
     saveModel(classifier, "svm")
-    saveMetricsToFile("svm", sentim_analyzer, timeDiff/60.0)
+    saveMetricsToFile("svm", sentim_analyzer, test_set, timeDiff/60.0)
     print "Total time to train: " + str(timeDiff/60.0) + " minutes."
     
     #Multinomial Naive Bayes.
     startTime = time.time()
     print("Multinomial Naive Bayes.")   
-    clf = SklearnClassifier(MultinomialNB)
+    clf = SklearnClassifier(MultinomialNB())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
@@ -153,7 +169,7 @@ def trainAllClassifiers():
     #Logistic Regression.
     startTime = time.time()
     print("Logistic Regression.")   
-    clf = SklearnClassifier(LogisticRegression)
+    clf = SklearnClassifier(LogisticRegression())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
@@ -165,7 +181,7 @@ def trainAllClassifiers():
     #Descision tree
     startTime = time.time()
     print("Decision Tree.")   
-    clf = SklearnClassifier(DecisionTreeClassifier)
+    clf = SklearnClassifier(DecisionTreeClassifier())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
@@ -177,7 +193,7 @@ def trainAllClassifiers():
     #Random Forrest.
     startTime = time.time()
     print("Random Forrest.")   
-    clf = SklearnClassifier(RandomForestClassifier)
+    clf = SklearnClassifier(RandomForestClassifier())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
@@ -189,7 +205,7 @@ def trainAllClassifiers():
     #Adaboost
     startTime = time.time()
     print("Ada Boost")   
-    clf = SklearnClassifier(AdaBoostClassifier)
+    clf = SklearnClassifier(AdaBoostClassifier())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
@@ -207,6 +223,9 @@ SVM is fileName="svm"
 NaiveBayes is fileName="nb"
 Multinomial NaiveBayes is fileName="mnb"
 DecisionTrees is fileName="dt"
+AdaBoost is fileName="ab"
+Random Forrest is fileName="rf"
+Logistic Regression is fileName="lr"
 
 
 '''
