@@ -6,9 +6,9 @@ Created on Mon Nov 30 16:04:00 2015
 Todo:
 DONE: 1) Run all classifiers, save, and save metrics.
 DONE: 2) Make a table with all metrics, using scikit learn libraries.
-3) Make set of all training documents classified by each method.
+DONE 3) Make set of all training documents classified by each method.
 4) Make a ROC curve with all classifiers.
-5) Do correlation analysis for each classifier's list of documents classified, sort, 
+DONE 5) Do correlation analysis for each classifier's list of documents classified, sort, 
 and graph correlations from max to min.
 
 
@@ -63,7 +63,6 @@ from nltk.sentiment.util import *
 #Tokenizer for tokenizing the emails.
 from nltk import word_tokenize
 
-
 #GLOBALS
 data = None
 correlationList = []
@@ -77,6 +76,7 @@ def main():
     #Get all of the emails.
     #data = dl.getFullEmailData()
     #trainAllClassifiers()
+    graphROCCurve()
     
 '''
 This method trains all of the classifiers sequentially. It first selects 4000 positive and 4000 negative examples. 
@@ -381,7 +381,7 @@ Used to test the classifiers on 1000 new test examples, and to return a pandas D
 and a DataFrame with the labels for the test set. This method is used mainly to build the data set for the ROC 
 curve. When built, the results of this method are saved in excel files for quick retrieval.
 '''
-def classifyOn1000Examples():
+def classifyOn1000Examples(binary=False):
     print("Splitting positive and negative documents...")    
     positive_docs = [ ([string.encode('ascii', 'ignore').decode('ascii') for string in sent], 'pos') for sent in movie_reviews.sents(categories='pos')]
     negative_docs = [ ([string.encode('ascii', 'ignore').decode('ascii') for string in sent ], 'neg') for sent in movie_reviews.sents(categories='neg')]     
@@ -413,7 +413,13 @@ def classifyOn1000Examples():
     #Make a dict to hold predicted labels.
     testDict = {"test_labels": []}
     for sent in test_set:
-        testDict["test_labels"].append(sent[1])
+        if binary == True:
+            if sent[1] == "pos":
+                testDict["test_labels"].append(1)
+            else:
+                testDict["test_labels"].append(-1)
+        else:
+            testDict["test_labels"].append(sent[1])
     
     print("Beginning classification...")
     classifierResultsDict = {key: [] for key in classifierNamesList}
@@ -422,21 +428,31 @@ def classifyOn1000Examples():
         classifier = loadModel(classifierKey)
         for sent in test_set:
             label = classifier.classify(sent[0])
-            classifierResultsDict[classifierKey].append(label)
+            if binary == True:
+                if label == "pos":
+                    classifierResultsDict[classifierKey].append(1)
+                else:
+                    classifierResultsDict[classifierKey].append(-1)
+            else:
+                classifierResultsDict[classifierKey].append(label)
             
     return pd.DataFrame(classifierResultsDict), pd.DataFrame(testDict)
     
+'''
+This method is used to graph the ROC curve for each classifier. This provides a visual method for 
+analysing the classifiers.
+'''
 def graphROCCurve():
     #Loab initial data.
-    rocDataClassified = pd.read_excel("./classifier_results/roc_data.xlsx")  
-    test_labels = pd.read_excel("./classifier_results/test_labels.xlsx")
+    rocDataClassified = pd.read_excel("./classifier_results/roc_data_bin.xlsx")  
+    test_labels = pd.read_excel("./classifier_results/test_labels_bin.xlsx")
     
     #Calculate all metrics from the roc curve function.
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
     for key in classifierNamesList:
-        fpr[key], tpr[key], _ = roc_curve(test_labels[:], rocDataClassified[key])
+        fpr[key], tpr[key], _ = roc_curve(test_labels["test_labels"], rocDataClassified[key])
         roc_auc[key] = auc(fpr[key], tpr[key])    
     
     #Plot the ROC curve for each classifier, along with the AUC measure. 

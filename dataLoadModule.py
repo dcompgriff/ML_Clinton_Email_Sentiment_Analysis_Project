@@ -16,7 +16,7 @@ from nltk import word_tokenize
 from nltk.sentiment import SentimentAnalyzer
 from nltk.sentiment.util import *
 
-
+#Global variable used to hold the data extracted from the database.
 data = None
 
 '''
