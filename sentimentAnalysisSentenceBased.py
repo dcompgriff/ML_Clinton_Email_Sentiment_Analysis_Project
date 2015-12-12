@@ -26,6 +26,7 @@ from sklearn.cross_validation import train_test_split
 from sklearn.externals import joblib
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 #Import the base scikit learn wrapper class from nltk.
 from nltk.classify.scikitlearn import SklearnClassifier
@@ -45,6 +46,8 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 #Import the adaboost classifier.
 from sklearn.ensemble import AdaBoostClassifier
+#Import the Linear svm classifier.
+from sklearn.svm import LinearSVC
 
 #Import the movie_reviews sentiment polarity corpus for training.
 from nltk.corpus import movie_reviews
@@ -59,6 +62,7 @@ from nltk import word_tokenize
 
 #GLOBALS
 data = None
+correlationList = []
 classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
 classifierResultsDict = {key: [] for key in classifierNamesList}
 processes = []
@@ -99,12 +103,15 @@ def trainAllClassifiers():
     print("Creating feature set...")
     all_words_with_neg_tags = sentim_analyzer.all_words([mark_negation(doc) for doc in train])
     #Create the unigram features, only taking features that occur more than 4 time.
-    unigram_features = sentim_analyzer.unigram_word_feats(all_words_with_neg_tags, min_freq=2)
+    #unigram_features = sentim_analyzer.unigram_word_feats(all_words_with_neg_tags, min_freq=2)
     
     #Save the unigram feature list to a file so it can be used later.
     #These features need to be applied to the email set.
-    f = open("./bow_features.pkl", "w")   
-    pickle.dump(unigram_features, f)
+    #f = open("./bow_features.pkl", "w")   
+    #pickle.dump(unigram_features, f)
+    #f.close()
+    f = open("./bow_features.pkl", "r")   
+    unigram_features = pickle.load(f)
     f.close()
     
     #Create a feature extractor based on the unigram word features created.
@@ -123,100 +130,112 @@ def trainAllClassifiers():
     #Create a trainer and train the sentiment analyzer on the training set.  
     print("Beginning the classifier training...")
     
-    #Naive Bayes
-    startTime = time.time()
-    print("Naive Bayes.")   
-    trainer = NaiveBayesClassifier.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "nb")
-    saveMetricsToFile("nb", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
-    
-    #Stochastic Gradient Descent. (Performed first since it takes the least amount of time.)
-    startTime = time.time()
-    print("Stochastic Gradient Descent.")   
-    clf = SklearnClassifier(SGDClassifier())
-    trainer = clf.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "sgd")
-    saveMetricsToFile("sgd", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
-    
     #SVM
     startTime = time.time()
-    print("RBF Support Vector Machine.")   
-    clf = SklearnClassifier(svm.SVC(kernel='rbf'))
+    print("Linear Support Vector Machine.")   
+    clf = SklearnClassifier(LinearSVC())
     trainer = clf.train
     classifier = sentim_analyzer.train(trainer, train_set)
     endTime = time.time()
     timeDiff = endTime - startTime
-    saveModel(classifier, "svm")
-    saveMetricsToFile("svm", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+    saveModel(classifier, "lsvm")
+    saveMetricsToFile("lsvm", sentim_analyzer, test_set, timeDiff/60.0)
+    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
     
-    #Multinomial Naive Bayes.
-    startTime = time.time()
-    print("Multinomial Naive Bayes.")   
-    clf = SklearnClassifier(MultinomialNB())
-    trainer = clf.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "mnb")
-    saveMetricsToFile("mnb", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-    
-    #Logistic Regression.
-    startTime = time.time()
-    print("Logistic Regression.")   
-    clf = SklearnClassifier(LogisticRegression())
-    trainer = clf.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "lr")
-    saveMetricsToFile("lr", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-    
-    #Descision tree
-    startTime = time.time()
-    print("Decision Tree.")   
-    clf = SklearnClassifier(DecisionTreeClassifier())
-    trainer = clf.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "dt")
-    saveMetricsToFile("dt", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-    
-    #Random Forrest.
-    startTime = time.time()
-    print("Random Forrest.")   
-    clf = SklearnClassifier(RandomForestClassifier())
-    trainer = clf.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "rf")
-    saveMetricsToFile("rf", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
-    
-    #Adaboost
-    startTime = time.time()
-    print("Ada Boost")   
-    clf = SklearnClassifier(AdaBoostClassifier())
-    trainer = clf.train
-    classifier = sentim_analyzer.train(trainer, train_set)
-    endTime = time.time()
-    timeDiff = endTime - startTime
-    saveModel(classifier, "ab")
-    saveMetricsToFile("ab", sentim_analyzer, test_set, timeDiff/60.0)
-    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+#    #Naive Bayes
+#    startTime = time.time()
+#    print("Naive Bayes.")   
+#    trainer = NaiveBayesClassifier.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "nb")
+#    saveMetricsToFile("nb", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
+#    
+#    #Stochastic Gradient Descent. (Performed first since it takes the least amount of time.)
+#    startTime = time.time()
+#    print("Stochastic Gradient Descent.")   
+#    clf = SklearnClassifier(SGDClassifier())
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "sgd")
+#    saveMetricsToFile("sgd", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."    
+#    
+#    #SVM
+#    startTime = time.time()
+#    print("RBF Support Vector Machine.")   
+#    clf = SklearnClassifier(svm.SVC(kernel='rbf'))
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "svm")
+#    saveMetricsToFile("svm", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+#    
+#    #Multinomial Naive Bayes.
+#    startTime = time.time()
+#    print("Multinomial Naive Bayes.")   
+#    clf = SklearnClassifier(MultinomialNB())
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "mnb")
+#    saveMetricsToFile("mnb", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+#    
+#    #Logistic Regression.
+#    startTime = time.time()
+#    print("Logistic Regression.")   
+#    clf = SklearnClassifier(LogisticRegression())
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "lr")
+#    saveMetricsToFile("lr", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+#    
+#    #Descision tree
+#    startTime = time.time()
+#    print("Decision Tree.")   
+#    clf = SklearnClassifier(DecisionTreeClassifier())
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "dt")
+#    saveMetricsToFile("dt", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+#    
+#    #Random Forrest.
+#    startTime = time.time()
+#    print("Random Forrest.")   
+#    clf = SklearnClassifier(RandomForestClassifier())
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "rf")
+#    saveMetricsToFile("rf", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
+#    
+#    #Adaboost
+#    startTime = time.time()
+#    print("Ada Boost")   
+#    clf = SklearnClassifier(AdaBoostClassifier())
+#    trainer = clf.train
+#    classifier = sentim_analyzer.train(trainer, train_set)
+#    endTime = time.time()
+#    timeDiff = endTime - startTime
+#    saveModel(classifier, "ab")
+#    saveMetricsToFile("ab", sentim_analyzer, test_set, timeDiff/60.0)
+#    print "Total time to train: " + str(timeDiff/60.0) + " minutes."
     
 def runAllEmailClassifiersForEmails():
     global processes
@@ -366,7 +385,7 @@ def correlateClassifiers(classifierResults):
 #    exList = ["svm", "dt", "nb"]
 #    cDict = {"svm": [1, 1, -1, 1, 1], "dt": [-1, 1, 1, 1, 1], "nb": [-1, 1, 1, 1, 1]}  
     #List of tupples (firstClassifierIndex, secondClassifierIndex, correlationValue)
-#    correlationResults = []
+    correlationResults = []
 #    classifierResults = pd.DataFrame(cDict)
     
     #Find all correlation values.
@@ -375,12 +394,33 @@ def correlateClassifiers(classifierResults):
             firstClassifier = classifierNamesList[i]
             secondClassifier = classifierNamesList[j]
             correlation = np.corrcoef(classifierResults[firstClassifier], classifierResults[secondClassifier])
-            correlationResults.append((i, j, correlation[0][1]))
+            correlationResults.append((firstClassifier, secondClassifier, correlation[0][1]))
         
     #Sort by highest correlation.
     sortedByHighestCorrelation = sorted(correlationResults, key=lambda item: item[2], reverse=True)
     
     return sortedByHighestCorrelation
+    
+    
+def graphCorrelation():
+    global data
+    global correlationList    
+    
+    #Get all classifier results.
+    data = buildClassifierResultsTable()
+    #Find all pairs of correlation. (28 total)
+    correlationList = correlateClassifiers(data)
+    correlationOnlyList = [item[2] for item in correlationList]    
+    
+    
+    X = np.arange(0, len(correlationOnlyList))
+    plt.bar(X, correlationOnlyList)
+    
+    for x,y in zip(X,correlationOnlyList):
+        plt.text(x+0.4, y+0.05, "(" + correlationList[x][0] + ", \n" + correlationList[x][1] + ")", ha='center', va= 'bottom')
+    
+    plt.show()
+    
     
 def buildClassifierResultsTable():
     for classifierKey in classifierNamesList:
@@ -435,8 +475,9 @@ def saveMetricsToFile(fileName, sentim_analyzer, test_set, timeInMin):
 if __name__ == "__main__":
     #main()
     #runAllEmailClassifiersForEmails()
-    data = buildClassifierResultsTable()
-    #correlateClassifiers()
+    #data = buildClassifierResultsTable()
+    #correlationList = correlateClassifiers(data)
+    graphCorrelation()
     
 
 
