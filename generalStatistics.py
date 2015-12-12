@@ -1,6 +1,7 @@
 import pandas as pd
 import nltk
 from nltk.tokenize import RegexpTokenizer
+import io
 
 import dataLoadModule
 import constants
@@ -22,7 +23,17 @@ def get_political_figures():
             political_figures.add(political_figure.strip())
 
     return political_figures
+'''
+This method is needed for python 2.7
+'''
+def get_political_figures_legacy():
+    political_figures = set()
 
+    with io.open(constants.political_figures, 'r', encoding="utf-8") as f:
+        for political_figure in f.readlines():
+            political_figures.add(political_figure.strip())
+
+    return political_figures
 
 def filter_significant_email(data):
     """
@@ -86,9 +97,36 @@ def find_mentioned_pol_figures(data):
                 if figure in figures_mentioned:
                     figures_mentioned[figure] += 1
                 else:
-                    figures_mentioned[figure] = 1
+                    figures_mentioned[figure] = 0
 
-    return pd.DataFrame.from_dict(figures_mentioned, orient="index")
+    return pd.DataFrame(figures_mentioned)
+    
+'''
+This method is neeeded for python 2.7
+'''
+def find_mentioned_pol_figures_legacy(data):
+    """
+    Return the frequency of political figures mentioned in Clinton's emails
+    (is a map from country to integer how many emails the country is mentioned)
+
+    :param data: email data as a Pandas data frame
+    :return: pol figures mentioned in the email
+    """
+    figures_mentioned = {}
+    figures = get_political_figures_legacy()
+
+    for ind, row in data.iterrows():
+        subject_words = row["MetadataSubject"].lower()
+        message_words = row["RawText"].lower()
+
+        for figure in figures:
+            if figure + " " in (subject_words + message_words):
+                if figure in figures_mentioned:
+                    figures_mentioned[figure][0].append(ind)
+                else:
+                    figures_mentioned[figure] = [[ind]]
+
+    return pd.DataFrame(figures_mentioned)
 
 def basic_statistics_of_email(data):
     """

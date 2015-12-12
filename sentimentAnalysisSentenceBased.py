@@ -7,7 +7,7 @@ Todo:
 DONE: 1) Run all classifiers, save, and save metrics.
 DONE: 2) Make a table with all metrics, using scikit learn libraries.
 DONE 3) Make set of all training documents classified by each method.
-4) Make a ROC curve with all classifiers.
+DONE 4) Make a ROC curve with all classifiers.
 DONE 5) Do correlation analysis for each classifier's list of documents classified, sort, 
 and graph correlations from max to min.
 
@@ -27,6 +27,9 @@ import pickle
 from multiprocessing import Process
 #Used to load email data from the data base.
 import dataLoadModule as dl
+
+import generalStatistics as gs
+
 #Used to split and randomly select data samples for train and test.
 from sklearn.cross_validation import train_test_split
 #Used as an efficient method for saving and loading scikit learn models.
@@ -80,10 +83,13 @@ correlationList = []
 classifierNamesList = ["svm", "lr", "nb",  "dt", "mnb", "rf", "ab", "sgd"]
 classifierResultsDict = {key: [] for key in classifierNamesList}
 processes = []
+important_people = ["obama", "lew", "kerry", "stevens", "biden", "carter", "reagan", "esty", "wilson", "dennis ross", "pelosi", "lowey",
+  "boehner", "kelly", "graham", "mcgovern"]
 
 def main():
     global data
-    graphROCCurve()
+    #graphROCCurve()
+    graphPoliticalFigureSentiment()
     
 '''
 This method trains all of the classifiers sequentially. It first selects 4000 positive and 4000 negative examples. 
@@ -492,6 +498,42 @@ def buildClassifierResultsTable():
     return pd.DataFrame(classifierResultsDict)
     
 
+def graphPoliticalFigureSentiment():
+    #Get data, and build counts.
+    fullData = dl.getFullEmailData()
+    people = gs.find_mentioned_pol_figures_legacy(fullData)
+    labels = buildClassifierResultsTable()
+
+    sentiment_counts = {person: [0, 0] for person in important_people }
+    for person in important_people:
+        for emailIndex in people[person][0]:
+            label = labels["ab"][emailIndex]
+            if label == 1:
+                sentiment_counts[person][0] = sentiment_counts[person][0] + 1
+            else:
+                sentiment_counts[person][1] = sentiment_counts[person][1] + 1
+                
+    ind = np.arange(len(important_people)) 
+    positive = []
+    negative = []
+    for person in important_people:
+        positive.append(sentiment_counts[person][0])
+        negative.append(sentiment_counts[person][1])
+    
+    #Plot the final figure of sentiments.
+    fig = plt.figure()
+    ax = fig.add_subplot(111)   
+    ax.bar(ind, positive,color='g',align='center')
+    ax.bar(ind, negative, bottom=positive, color='r',align='center')  
+    ax.set_xticks(ind)
+    ax.set_xticklabels(important_people)       
+    plt.show()
+                    
+                
+    print sentiment_counts
+    
+    
+
 '''
 Pickle the classifier model into a re-useable file.
 
@@ -535,5 +577,24 @@ def saveMetricsToFile(fileName, sentim_analyzer, test_set, timeInMin):
 if __name__ == "__main__":
     main()
 
-
+#Top political emails. 
+#people = gs.find_mentioned_pol_figures(fullData)
+#mcgovern             21
+#graham               21
+#kelly                21
+#boehner              22
+#lowey                23
+#pelosi               23
+#dennis ross          23
+#wilson               25
+#esty                 26
+#reagan               38
+#carter               42
+#biden                50
+#stevens              66
+#kerry                68
+#lew                  70
+#obama               464
+#important_people = ["obama", "lew", "kerry", "stevens", "biden", "carter", "reagan", "esty", "wilson", "dennis ross", "pelosi", "lowey",
+#  "boehner", "kelly", "graham", "mcgovern"]
 
