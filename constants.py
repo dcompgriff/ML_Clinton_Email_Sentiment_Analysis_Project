@@ -12,12 +12,12 @@ class FeatureExtractor(Enum):
     freq_dist = 5
 
 class Corpus(Enum):
-    movie_review = 0
+    # movie_review = 0
     pol_debates = 1
 
 class Classifier(Enum):
     naive_bays = 0
-    maxent = 1
+    #maxent = 1
     decision_tree = 2
     linear_svm = 3
     random_forest = 4
@@ -28,7 +28,7 @@ class Classifier(Enum):
 Constants for Document-Based
 """
 mark_negation = False
-feature_extractor = FeatureExtractor.bigram_bag_of_words
+feature_extractor = FeatureExtractor.adjective_bag_of_words
 corpus = Corpus.pol_debates
 classifier = Classifier.naive_bays
 

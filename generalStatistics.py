@@ -41,7 +41,7 @@ def filter_significant_email(data):
     return data[frame_to_choose]
 
 
-def find_mentioned_countries(data):
+def count_mentioned_countries(data):
     """
     Return the frequency of countries mentioned in Clinton's emails
     (is a map from country to integer how many emails the country is mentioned)
@@ -66,7 +66,7 @@ def find_mentioned_countries(data):
     return pd.DataFrame.from_dict(countries_mentioned, orient="index")
 
 
-def find_mentioned_pol_figures(data):
+def count_mentioned_pol_figures(data):
     """
     Return the frequency of political figures mentioned in Clinton's emails
     (is a map from country to integer how many emails the country is mentioned)

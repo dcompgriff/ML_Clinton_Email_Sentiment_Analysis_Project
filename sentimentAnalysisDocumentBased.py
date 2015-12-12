@@ -13,10 +13,10 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
-
 import itertools
-
 import constants
+
+tagger = None
 
 """
 Corpus
@@ -82,8 +82,13 @@ def extract_sig_bigram_feats(word_list):
     bigram_finder = BigramCollocationFinder.from_words(word_list)
     bigrams = bigram_finder.nbest(BigramAssocMeasures.chi_sq, 150)
 
+    # Convert the bigrams to strings
+    bigram_str = []
+    for bigram in bigrams:
+        bigram_str.append(bigram[0] + "_" + bigram[1])
+
     # Return both the bag_of_words + the bigrams
-    return dict([(ngram, True) for ngram in itertools.chain(word_list, bigrams)])
+    return dict([(ngram, True) for ngram in itertools.chain(word_list, bigram_str)])
 
 def adjective_bag_of_words(word_list):
     global tagger
@@ -97,10 +102,12 @@ def adj_noun_adv_vb_bag_of_words(word_list):
     return dict([(word, True) for word, pos in word_pos if pos == b"JJ" or pos == b"NN" or pos == b"RB" or pos == b"VB"])
 
 
-if __name__ == "__main__":
+def main():
+    global tagger
+
     if constants.corpus == constants.Corpus.movie_review:
         neg_docs, pos_docs = get_movie_corpus()
-    elif constants.corpus == constants.Corpus.pol_debates:
+    if constants.corpus == constants.Corpus.pol_debates:
         neg_docs, pos_docs = get_political_debates()
 
     if constants.mark_negation:
@@ -122,13 +129,13 @@ if __name__ == "__main__":
 
     # Set up the Sentiment Analyzer
     analyzer = SentimentAnalyzer()
-    all_words = analyzer.all_words(train_docs, labeled=True)
 
     if constants.feature_extractor == constants.FeatureExtractor.bag_of_words:
         analyzer.add_feat_extractor(extract_bag_of_words_feats)
-    elif  constants.feature_extractor == constants.FeatureExtractor.freq_dist:
+    if  constants.feature_extractor == constants.FeatureExtractor.freq_dist:
         analyzer.add_feat_extractor(extract_freq_dist)
     elif constants.feature_extractor == constants.FeatureExtractor.unigram:
+        all_words = analyzer.all_words(train_docs, labeled=True)
         unigram_features = analyzer.unigram_word_feats(all_words, min_freq=1000)
         print("Length of unigram features: %d" % len(unigram_features))
         analyzer.add_feat_extractor(nltk.sentiment.util.extract_unigram_feats, unigrams=unigram_features)
@@ -151,11 +158,11 @@ if __name__ == "__main__":
         analyzer.evaluate(test_feat, classifier, accuracy=True, f_measure=True, precision=True, recall=True,
                           verbose=True)
         classifier.show_most_informative_features()
-    elif constants.classifier == constants.Classifier.maxent:
-        classifier = MaxentClassifier.train(train_feat)
-        analyzer.evaluate(test_feat, classifier, accuracy=True, f_measure=True, precision=True, recall=True,
-                          verbose=True)
-        classifier.show_most_informative_features()
+    # elif constants.classifier == constants.Classifier.maxent:
+    #     classifier = MaxentClassifier.train(train_feat)
+    #     analyzer.evaluate(test_feat, classifier, accuracy=True, f_measure=True, precision=True, recall=True,
+    #                       verbose=True)
+    #     classifier.show_most_informative_features()
     elif constants.classifier == constants.Classifier.decision_tree:
         classifier =  SklearnClassifier(DecisionTreeClassifier()).train(train_feat)
         analyzer.evaluate(test_feat, classifier, accuracy=True, f_measure=True, precision=True, recall=True,
@@ -172,3 +179,6 @@ if __name__ == "__main__":
         classifier = SklearnClassifier(LogisticRegression()).train(train_feat)
         analyzer.evaluate(test_feat, classifier, accuracy=True, f_measure=True, precision=True, recall=True,
                           verbose=True)
+
+if __name__ == "__main__":
+    main()
